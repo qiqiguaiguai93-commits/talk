@@ -1,0 +1,101 @@
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:transparent;user-select:none;font-family:"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif}
+
+/* ============== LIQUID METAL ORB ============== */
+#liquid-container{display:flex;align-items:center;justify-content:center;width:100%;height:100%;cursor:grab;position:relative;-webkit-app-region:no-drag}
+#liquid-core{width:56px;height:56px;border-radius:50%;position:relative;overflow:hidden;
+  background:radial-gradient(circle at 50% 50%, rgba(200,220,255,0.8), rgba(140,180,240,0.5));
+  box-shadow:0 0 30px rgba(130,170,255,0.5),0 0 60px rgba(180,210,255,0.3),0 0 90px rgba(100,150,220,0.2);
+  animation:hueRotate 6s linear infinite}
+@keyframes hueRotate{from{filter:hue-rotate(0deg)}to{filter:hue-rotate(360deg)}}
+.liquid-blob{position:absolute;border-radius:50%;background:rgba(255,255,255,0.3);filter:blur(8px);
+  animation:liquidFlow 4s ease-in-out infinite}
+.liquid-blob:nth-child(1){width:30px;height:30px;top:10%;left:10%;animation-delay:0s}
+.liquid-blob:nth-child(2){width:24px;height:24px;top:40%;left:50%;animation-delay:-1.5s}
+.liquid-blob:nth-child(3){width:20px;height:20px;top:20%;left:30%;animation-delay:-3s}
+@keyframes liquidFlow{0%,100%{transform:translate(0,0)}25%{transform:translate(8px,-6px)}50%{transform:translate(-4px,10px)}75%{transform:translate(-10px,-4px)}}
+#liquid-ripples{position:absolute;inset:0;pointer-events:none}
+.ripple-ring{position:absolute;top:50%;left:50%;width:56px;height:56px;margin-left:-28px;margin-top:-28px;
+  border-radius:50%;border:1px solid rgba(130,170,255,0.6);animation:rippleOut 1s ease-out forwards}
+@keyframes rippleOut{0%{transform:scale(0.8);opacity:1}100%{transform:scale(2.5);opacity:0}}
+.orb-tooltip{position:absolute;bottom:-12px;left:50%;transform:translateX(-50%);font-size:8px;color:rgba(255,255,255,0.7);
+  background:rgba(0,0,0,0.4);border-radius:6px;padding:2px 8px;pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap}
+#liquid-container:hover .orb-tooltip{opacity:1}
+
+/* ============== EXPANDED CHAT PANEL ============== */
+#chat-panel{position:absolute;inset:0;display:flex;flex-direction:column;
+  backdrop-filter:blur(40px);background:rgba(255,255,255,0.85);border-radius:24px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.12);z-index:10;overflow:hidden}
+#panel-header{display:flex;align-items:center;gap:8px;padding:10px 14px;
+  -webkit-app-region:drag;flex-shrink:0}
+.panel-avatar-sm{width:20px;height:20px;border-radius:50%;flex-shrink:0;
+  background:radial-gradient(circle at 40% 35%, rgba(180,210,255,0.9), rgba(100,150,220,0.5))}
+#panel-title{font-size:12px;font-weight:600;color:#555}
+#panel-collapse{margin-left:auto;width:28px;height:28px;border:none;border-radius:50%;
+  background:rgba(0,0,0,0.08);font-size:14px;cursor:pointer;
+  -webkit-app-region:no-drag;display:flex;align-items:center;justify-content:center;z-index:11}
+#panel-collapse:hover{background:rgba(0,0,0,0.2)}
+#panel-messages{flex:1;overflow-y:auto;padding:8px 12px;background:rgba(255,255,255,0.3)}
+#panel-bubbles{display:flex;flex-direction:column;gap:8px}
+.panel-bubble{padding:8px 12px;border-radius:14px;font-size:11px;line-height:1.5;max-width:85%;word-break:break-word;
+  animation:fadeInUp .3s ease}
+.panel-bubble.ai{align-self:flex-start;background:rgba(235,245,255,0.9);color:#334;border-bottom-left-radius:4px}
+.panel-bubble.user{align-self:flex-end;background:rgba(255,140,66,0.15);color:#553;border-bottom-right-radius:4px}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+#panel-input-area{display:flex;gap:6px;padding:8px 12px;flex-shrink:0;-webkit-app-region:no-drag}
+#panel-input{flex:1;min-width:0;min-height:36px;max-height:80px;border:none;border-radius:12px;
+  padding:6px 10px;font-size:12px;font-family:inherit;background:rgba(255,255,255,0.85);
+  color:#333;outline:none;resize:none}
+#panel-mic{width:30px;height:30px;border:none;border-radius:50%;background:rgba(0,0,0,0.06);
+  font-size:13px;cursor:pointer;flex-shrink:0}
+#panel-mic.recording{background:#f44;color:#fff}
+#panel-send{flex-shrink:0;border:none;border-radius:10px;padding:6px 14px;font-size:11px;
+  background:#ff8c42;color:#fff;cursor:pointer;transition:background .15s}
+#panel-send:hover{background:#e6772e}
+
+/* ============== TRAY BUBBLE ============== */
+#tray-bubble{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:rgba(255,255,255,0.95);border-radius:16px;padding:10px 16px;
+  font-size:12px;color:#333;box-shadow:0 4px 16px rgba(0,0,0,0.15);z-index:50;animation:fadeInUp .3s ease}
+
+/* ============== SETTINGS PANEL ============== */
+#settings-panel{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.35);backdrop-filter:blur(8px);-webkit-app-region:drag;z-index:100}
+.settings-card{position:relative;width:200px;max-height:90%;overflow-y:auto;padding:16px 14px;border-radius:14px;
+  background:rgba(255,255,255,0.95);box-shadow:0 4px 16px rgba(0,0,0,0.2);text-align:center;
+  -webkit-app-region:no-drag}
+.settings-card h2{font-size:13px;font-weight:700;color:#333;margin-bottom:4px}
+.settings-card p{font-size:10px;color:#888;margin-bottom:10px;line-height:1.4}
+#settings-input{width:100%;border:1px solid #ddd;border-radius:8px;padding:6px 8px;
+  font-size:10px;color:#333;outline:none;margin-bottom:8px;transition:border-color .15s}
+#settings-input:focus{border-color:#ff8c42}
+#settings-input::placeholder{color:#bbb}
+#settings-btn{width:100%;border:none;border-radius:8px;padding:6px 0;font-size:11px;font-weight:600;
+  background:#ff8c42;color:#fff;cursor:pointer;transition:background .15s;margin-bottom:6px}
+#settings-btn:hover{background:#e6772e}
+#settings-btn:disabled{opacity:.6;cursor:default}
+#settings-error{display:block;min-height:14px;font-size:10px;color:#e0483b;line-height:1.3}
+#settings-close-btn{position:absolute;top:6px;right:8px;width:28px;height:28px;border:none;
+  border-radius:50%;background:rgba(0,0,0,0.1);font-size:16px;line-height:28px;color:#555;
+  cursor:pointer;transition:background .15s;padding:0;z-index:101;pointer-events:auto}
+#settings-close-btn:hover{background:rgba(0,0,0,0.25);color:#111}
+#import-history-btn{width:100%;border:1px solid #ddd;border-radius:8px;padding:5px 0;font-size:10px;
+  color:#666;background:rgba(255,255,255,0.7);cursor:pointer;transition:background .15s;margin-top:4px}
+#import-history-btn:hover{background:rgba(255,255,255,0.95);border-color:#bbb}
+
+/* settings rows */
+.setting-row{margin-top:6px;text-align:left;font-size:10px;color:#666}
+.setting-row label{display:block;margin-bottom:2px}
+.setting-row input[type=range]{width:100%}
+.setting-row select{width:100%;border:1px solid #ddd;border-radius:6px;padding:3px 6px;font-size:10px;
+  color:#333;background:rgba(255,255,255,0.7);outline:none;margin-top:3px;cursor:pointer}
+.setting-row-checkbox{margin-top:6px;display:flex;align-items:center;gap:6px;font-size:10px;color:#666}
+.setting-row-checkbox input[type=checkbox]{width:14px;height:14px;cursor:pointer}
+.setting-row-checkbox label{cursor:pointer}
+
+/* ============== utility ============== */
+.hidden{display:none !important}
+
+/* ============== mic button recording state ============== */
+.recording{animation:pulse-mic 1s ease-in-out infinite}
+@keyframes pulse-mic{0%,100%{box-shadow:0 0 0 0 rgba(255,68,68,0.5)}50%{box-shadow:0 0 0 8px rgba(255,68,68,0)}}

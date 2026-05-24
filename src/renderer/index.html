@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Desktop Mate</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Liquid Metal Orb -->
+  <div id="liquid-container" class="mode-container">
+    <div id="liquid-core">
+      <div class="liquid-blob"></div>
+      <div class="liquid-blob"></div>
+      <div class="liquid-blob"></div>
+    </div>
+    <span class="orb-tooltip">Click to expand</span>
+    <div id="liquid-ripples"></div>
+  </div>
+
+  <!-- Expanded Chat Panel -->
+  <div id="chat-panel" class="hidden">
+    <div id="panel-header">
+      <div id="panel-avatar" class="panel-avatar-sm"></div>
+      <span id="panel-title">Chat</span>
+      <button id="panel-collapse" title="Collapse">&#x2715;</button>
+    </div>
+    <div id="panel-messages">
+      <div id="panel-bubbles"></div>
+    </div>
+    <div id="panel-input-area">
+      <textarea id="panel-input" rows="2" placeholder="Say something..."></textarea>
+      <button id="panel-mic" title="Voice">&#x1F3A4;</button>
+      <button id="panel-send">Send</button>
+    </div>
+  </div>
+
+  <!-- Settings Panel -->
+  <div id="settings-panel" class="hidden">
+    <div class="settings-card">
+      <button id="settings-close-btn" title="Back">&times;</button>
+
+      <input id="settings-input" type="password" placeholder="sk-xxxxxxxxxxxxxxxx" />
+      <button id="settings-btn">Validate &amp; Save</button>
+      <span id="settings-error"></span>
+      <button id="import-history-btn">Import Chat History</button>
+      <input type="file" id="chat-history-file" accept=".txt" class="hidden" />
+
+      <div class="setting-row">
+        <label for="bubble-duration-slider">Bubble: <span id="bubble-duration-value">8</span>s</label>
+        <input type="range" id="bubble-duration-slider" min="3" max="15" step="1" value="8" />
+      </div>
+      <div class="setting-row">
+        <label for="asr-backend-select">ASR Engine:</label>
+        <select id="asr-backend-select">
+          <option value="vosk">Vosk (offline)</option>
+          <option value="deepseek">DeepSeek (cloud)</option>
+        </select>
+      </div>
+      <div class="setting-row-checkbox">
+        <input type="checkbox" id="stream-toggle" checked />
+        <label for="stream-toggle">Stream output</label>
+      </div>
+      <div class="setting-row-checkbox">
+        <input type="checkbox" id="tts-toggle" checked />
+        <label for="tts-toggle">Read aloud (TTS)</label>
+      </div>
+      <div class="setting-row-checkbox">
+        <input type="checkbox" id="auto-chat-toggle" checked />
+        <label for="auto-chat-toggle">Auto chat</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tray Bubble -->
+  <div id="tray-bubble" class="hidden">
+    <span id="tray-bubble-text"></span>
+  </div>
+
+  <script src="ui.js"></script>
+  <script src="chat.js"></script>
+  <script src="voice.js"></script>
+</body>
+</html>
