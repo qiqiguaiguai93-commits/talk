@@ -159,7 +159,8 @@ wss.on("connection", (ws) => {
         }
 
         case "search-memories": {
-          const results = memory.search(req.tokens, req.excludeIds, 3);
+          const tokens = req.query ? memory.tokenize(req.query) : (req.tokens || []);
+          const results = memory.search(tokens, req.excludeIds, 3);
           send(ws, { requestId, type: "memories", data: results });
           break;
         }

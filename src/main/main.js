@@ -98,7 +98,7 @@ function startAIServer() {
     aiProcess.on("exit", (code, signal) => {
       console.log("[main] ai-server exited, code:", code, "signal:", signal);
       aiProcess = null;
-      if (!restarted && code !== 0 && code !== null) {
+      if (!restarted && (code !== 0 || signal !== null)) {
         restarted = true;
         console.log("[main] attempting ai-server restart (one-time)...");
         setTimeout(() => startAIServer().then(connectWS).catch(() => {}), 2000);
@@ -276,7 +276,7 @@ ipcMain.on("chat-stream-start", (event, messages, apiKeyOverride, options) => {
 
 ipcMain.handle("search-memories", async (_event, opts) => {
   try {
-    const res = await wsSend({ type: "search-memories", tokens: opts.tokens, excludeIds: opts.excludeIds });
+    const res = await wsSend({ type: "search-memories", query: opts.query || "", tokens: opts.tokens, excludeIds: opts.excludeIds });
     return res.data || [];
   } catch (_) { return []; }
 });

@@ -13,60 +13,36 @@ function extractMemories(text) {
   };
 }
 
-function tokenize(text) {
-  const chars = Array.from(text.trim());
-  const tokens = [];
-  for (const ch of chars) {
-    if (/[\s，。！？、…—…\.\,\!\?:\;\"\'\(\)\[\]]/g.test(ch)) continue;
-    tokens.push(ch);
-  }
-  for (let i = 0; i < tokens.length - 1; i++) {
-    tokens.push(tokens[i] + tokens[i + 1]);
-  }
-  return [...new Set(tokens)];
-}
-
 async function searchMemories(query) {
   try {
-    const tokens = tokenize(query);
-    return await window.electronAPI.searchMemories({ tokens, excludeIds: [...window.injectedMemoryIds] });
+    return await window.electronAPI.searchMemories({ query, excludeIds: [...window.injectedMemoryIds] });
   } catch (_) { return []; }
 }
 
-// ========== send message ==========
+// ========== reply finalization (shared by stream + non-stream) ==========
 
-async function sendMessage() {
-  const input = window.chatInput;
-  const text = input.value.trim();
-  if (!text) return;
-
-  input.value = "";
-  window.petState.lastInteraction = Date.now();
-
-  const myId = window.pendingId_inc();
-
-  // Inject chat history style on first message
-  if (!window.styleInjected_get()) {
-    const chatHistory = localStorage.getItem("chatHistory");
-    if (chatHistory) {
-      window.messages.unshift({
-        role: "user",
-        content: "以下是你（林一）过去的聊天记录，请模仿其中的语气、用词和风格：\n" + chatHistory,
-      });
-    }
-    window.styleInjected_set(true);
+function finalizeReply(replyText, msgs, transientMsgs, userMsg) {
+  const { cleanText, memoryEntries } = extractMemories(replyText);
+  for (const entry of memoryEntries) {
+    window.electronAPI.saveMemory({ content: entry.content, keywords: entry.keywords || [] }).catch(() => {});
   }
+  msgs.push(...transientMsgs, userMsg, { role: "assistant", content: cleanText });
+  window.showBubble(cleanText);
+  if (window.ttsEnabled_get()) window.speakText(cleanText);
+}
 
-  // Remove old auto-injected system messages
-  const msgs = window.messages;
+// ========== transient message builders ==========
+
+function cleanAutoSystemMessages(msgs) {
   for (let i = msgs.length - 1; i >= 0; i--) {
     const c = msgs[i].content;
     if (msgs[i].role === "system" && (c.startsWith("[AUTO:mode]") || c.startsWith("[AUTO:memory]"))) {
       msgs.splice(i, 1);
     }
   }
+}
 
-  // Build transient auto-injected messages
+async function buildTransientMessages(text) {
   const transientMsgs = [];
 
   if (window.petState.mode === "think") {
@@ -76,7 +52,6 @@ async function sendMessage() {
     });
   }
 
-  // Search & inject relevant memories
   const matchedMemories = await searchMemories(text);
   if (matchedMemories.length > 0) {
     const lines = matchedMemories.map((m, i) => `${i + 1}. ${m.content}`);
@@ -95,74 +70,81 @@ async function sendMessage() {
     }
   } catch (_) {}
 
-  const userMsg = { role: "user", content: window.buildPetContext() + "\n" + text };
-  const requestMessages = [...msgs, ...transientMsgs, userMsg];
+  return transientMsgs;
+}
 
-  // Show loading
+function injectChatStyle() {
+  if (window.styleInjected_get()) return;
+  const chatHistory = localStorage.getItem("chatHistory");
+  if (chatHistory) {
+    window.messages.unshift({
+      role: "user",
+      content: "以下是你（林一）过去的聊天记录，请模仿其中的语气、用词和风格：\n" + chatHistory,
+    });
+  }
+  window.styleInjected_set(true);
+}
+
+// ========== streaming helpers ==========
+
+function startStreamReply(requestMessages, myId, transientMsgs, userMsg) {
+  let streamedText = "";
+  const cleanups = [];
+  const cleanup = () => cleanups.forEach((fn) => fn());
+
+  cleanups.push(
+    window.electronAPI.onStreamToken((token) => {
+      if (myId !== window.pendingId_get()) { cleanup(); return; }
+      streamedText += token;
+    })
+  );
+
+  cleanups.push(
+    window.electronAPI.onStreamEnd((fullText) => {
+      cleanup();
+      if (myId !== window.pendingId_get()) return;
+      finalizeReply(fullText || streamedText, window.messages, transientMsgs, userMsg);
+    })
+  );
+
+  cleanups.push(
+    window.electronAPI.onStreamError((msg) => {
+      cleanup();
+      if (myId !== window.pendingId_get()) return;
+      window.showBubble(streamedText || msg, 5000);
+    })
+  );
+
+  window.electronAPI.startStreamChat(requestMessages, undefined, { mode: window.petState.mode });
+}
+
+// ========== send message (orchestrator) ==========
+
+async function sendMessage() {
+  const input = window.chatInput;
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = "";
+  window.petState.lastInteraction = Date.now();
+  const myId = window.pendingId_inc();
+
+  injectChatStyle();
+  cleanAutoSystemMessages(window.messages);
+
+  const transientMsgs = await buildTransientMessages(text);
+  const userMsg = { role: "user", content: window.buildPetContext() + "\n" + text };
+  const requestMessages = [...window.messages, ...transientMsgs, userMsg];
+
   window.showBubble("...", 30000);
 
-  const t0 = performance.now();
-
   if (window.streamEnabled_get()) {
-    // ===== streaming path =====
-    let streamedText = "";
-    let firstToken = true;
-    const cleanups = [];
-
-    const cleanup = () => cleanups.forEach((fn) => fn());
-
-    cleanups.push(
-      window.electronAPI.onStreamToken((token) => {
-        if (myId !== window.pendingId_get()) { cleanup(); return; }
-        streamedText += token;
-        if (firstToken) {
-          firstToken = false;
-        }
-      })
-    );
-
-    cleanups.push(
-      window.electronAPI.onStreamEnd((fullText) => {
-        cleanup();
-        if (myId !== window.pendingId_get()) return;
-
-        const finalText = fullText || streamedText;
-
-        const { cleanText, memoryEntries } = extractMemories(finalText);
-        for (const entry of memoryEntries) {
-          window.electronAPI.saveMemory({ content: entry.content, keywords: entry.keywords || [] }).catch(() => {});
-        }
-
-        msgs.push(...transientMsgs, userMsg, { role: "assistant", content: cleanText });
-        window.showBubble(cleanText);
-        if (window.ttsEnabled_get()) window.speakText(cleanText);
-      })
-    );
-
-    cleanups.push(
-      window.electronAPI.onStreamError((msg) => {
-        cleanup();
-        if (myId !== window.pendingId_get()) return;
-        window.showBubble(streamedText || msg, 5000);
-      })
-    );
-
-    window.electronAPI.startStreamChat(requestMessages, undefined, { mode: window.petState.mode });
+    startStreamReply(requestMessages, myId, transientMsgs, userMsg);
   } else {
-    // ===== non-streaming path =====
     try {
       const reply = await window.electronAPI.chat(requestMessages, undefined, { mode: window.petState.mode });
-
       if (myId !== window.pendingId_get()) return;
-
-      const { cleanText, memoryEntries } = extractMemories(reply);
-      for (const entry of memoryEntries) {
-        window.electronAPI.saveMemory({ content: entry.content, keywords: entry.keywords || [] }).catch(() => {});
-      }
-
-      msgs.push(...transientMsgs, userMsg, { role: "assistant", content: cleanText });
-      window.showBubble(cleanText);
-      if (window.ttsEnabled_get()) window.speakText(cleanText);
+      finalizeReply(reply, window.messages, transientMsgs, userMsg);
     } catch (err) {
       if (myId !== window.pendingId_get()) return;
       window.showBubble("*sighs* Something went wrong: " + err.message);
